@@ -51,7 +51,10 @@ def test_opt_in_without_instance_but_with_model_logs_aggregated_entry():
 
 @pytest.mark.django_db
 def test_long_object_repr_is_truncated_instead_of_crashing_on_write():
-    article = Article.objects.create(title="x" * 500)
+    # Instance non persistée : Article.title (max_length=200) refuserait
+    # lui-même 500 caractères sur un backend strict (PostgreSQL). Seule la
+    # troncature de ActionLog.object_repr est testée ici.
+    article = Article(pk=1, title="x" * 500)
 
     record("CREATE", None, article)
 
