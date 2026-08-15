@@ -47,3 +47,25 @@ def test_opt_in_without_instance_but_with_model_logs_aggregated_entry():
     entry = ActionLog.objects.get()
     assert entry.object_id is None
     assert entry.metadata == {"count": 3}
+
+
+@pytest.mark.django_db
+def test_long_object_repr_is_truncated_instead_of_crashing_on_write():
+    article = Article.objects.create(title="x" * 500)
+
+    record("CREATE", None, article)
+
+    entry = ActionLog.objects.get()
+    max_length = ActionLog._meta.get_field("object_repr").max_length
+    assert len(entry.object_repr) == max_length
+
+
+@pytest.mark.django_db
+def test_long_custom_action_is_truncated_instead_of_crashing_on_write():
+    article = Article.objects.create(title="a")
+
+    record("X" * 100, None, article)
+
+    entry = ActionLog.objects.get()
+    max_length = ActionLog._meta.get_field("action").max_length
+    assert len(entry.action) == max_length

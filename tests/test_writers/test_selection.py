@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import threading
+import time
+
 import pytest
 
+from forge_log import writers as writers_module
 from forge_log.writers import _build_writer, get_writer, reset_writer
 from forge_log.writers.asyncio_writer import AsyncTaskWriter
 from forge_log.writers.celery_writer import CeleryWriter
@@ -50,3 +54,31 @@ def test_get_writer_is_a_cached_singleton(settings):
 def test_reset_writer_twice_in_a_row_is_a_noop():
     reset_writer()
     reset_writer()
+
+
+def test_get_writer_builds_exactly_once_under_concurrent_access(settings, monkeypatch):
+    settings.FORGE_LOG = {"WRITE_BACKEND": "sync"}
+    reset_writer()
+
+    build_count = 0
+    original_build = writers_module._build_writer
+
+    def slow_build():
+        nonlocal build_count
+        build_count += 1
+        time.sleep(0.05)  # élargit la fenêtre de course sans le verrou
+        return original_build()
+
+    monkeypatch.setattr(writers_module, "_build_writer", slow_build)
+
+    results: list[object] = []
+    threads = [
+        threading.Thread(target=lambda: results.append(get_writer())) for _ in range(8)
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert build_count == 1
+    assert all(result is results[0] for result in results)

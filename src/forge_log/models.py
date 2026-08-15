@@ -5,6 +5,7 @@ import uuid
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 
@@ -45,8 +46,12 @@ class ActionLog(models.Model):
     endpoint = models.CharField(max_length=255, blank=True, default="")
     http_method = models.CharField(max_length=10, blank=True, default="")
 
-    changes = models.JSONField(default=dict, blank=True)
-    metadata = models.JSONField(default=dict, blank=True)
+    # DjangoJSONEncoder (pas l'encodeur JSON standard, utilisé par défaut par
+    # JSONField) : sans lui, un diff sur un DecimalField ou un UUIDField fait
+    # planter l'écriture (`TypeError: Object of type Decimal/UUID is not
+    # JSON serializable`) au lieu de simplement journaliser la valeur.
+    changes = models.JSONField(default=dict, blank=True, encoder=DjangoJSONEncoder)
+    metadata = models.JSONField(default=dict, blank=True, encoder=DjangoJSONEncoder)
 
     class Meta:
         ordering = ["-timestamp"]

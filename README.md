@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-> **Release candidate.** `django-forge-log` est en `1.0.0rc1` : l'API est
+> **Release candidate.** `django-forge-log` est en `1.0.0rc2` : l'API est
 > considérée figée mais n'a pas encore été éprouvée par un usage réel en
 > dehors de ce dépôt. Les retours (issues, cas d'usage, bugs) sont les
 > bienvenus avant de tagger la version `1.0.0` finale — voir
@@ -54,13 +54,13 @@ pip install django-forge-log
 pip install "django-forge-log[drf,signals,celery]"
 ```
 
-`rc1` n'étant pas encore une version finale, PyPI ne l'installe pas par
-défaut avec `pip install django-forge-log` — utilisez `--pre` ou fixez la
-version exacte tant que `1.0.0` n'est pas taggé :
+Une release candidate n'étant pas une version finale, PyPI ne l'installe
+pas par défaut avec `pip install django-forge-log` — utilisez `--pre` ou
+fixez la version exacte tant que `1.0.0` n'est pas taggé :
 
 ```bash
-uv add "django-forge-log==1.0.0rc1"
-pip install "django-forge-log==1.0.0rc1"
+uv add "django-forge-log==1.0.0rc2"
+pip install "django-forge-log==1.0.0rc2"
 ```
 
 ```python
@@ -256,6 +256,17 @@ FORGE_LOG = {
   une garantie stricte de durabilité, utilisez `on_commit` ou `celery`.
 - Le diff ne compare que les champs concrets du modèle (`_meta.concrete_fields`)
   ou la liste explicite passée à `fields=` — pas les relations M2M implicites.
+- `track_action` ne détecte pas les vues `async def` : les décorer silencieusement
+  ne les exécute pas correctement (voir roadmap ci-dessous).
+
+## Roadmap (`1.0.0rc3`)
+
+- Support des vues `async def` pour `track_action` (détection
+  `asyncio.iscoroutinefunction`, ORM via `sync_to_async`).
+- Helper de requête `ActionLog.objects.for_object(instance)` pour
+  l'historique d'un objet, au-dessus de l'index composite déjà en place.
+- `GenericRelation` optionnelle sur les modèles suivis
+  (`instance.forge_log_entries.all()`).
 
 ## Développement
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import Callable
 from typing import cast
 
@@ -10,9 +11,19 @@ from forge_log.context import RequestContext, reset_current_context, set_current
 
 def _client_ip(request: HttpRequest) -> str | None:
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return cast(str, forwarded).split(",")[0].strip()
-    return cast("str | None", request.META.get("REMOTE_ADDR"))
+    candidate = cast(str, forwarded).split(",")[0].strip() if forwarded else None
+    candidate = candidate or cast("str | None", request.META.get("REMOTE_ADDR"))
+    if not candidate:
+        return None
+    try:
+        # X-Forwarded-For est entièrement contrôlable par le client : une
+        # valeur malformée insérée telle quelle ferait planter l'écriture
+        # dans GenericIPAddressField sur un backend qui valide le type
+        # colonne (ex. `inet` sous PostgreSQL).
+        ipaddress.ip_address(candidate)
+    except ValueError:
+        return None
+    return candidate
 
 
 class RequestContextMiddleware:

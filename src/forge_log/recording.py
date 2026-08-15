@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from functools import cache
 from typing import Any
 
-from django.db.models import Model
+from django.db.models import CharField, Model
 from django.utils import timezone
 
 from forge_log.conf import app_settings
@@ -10,6 +11,18 @@ from forge_log.context import RequestContext, get_current_context
 from forge_log.diff import compute_diff
 from forge_log.schemas import ActionLogEntry
 from forge_log.signals import action_logged
+
+
+@cache
+def _max_length(field_name: str) -> int:
+    # Import différé : ActionLog ne doit pas être importé au chargement du
+    # module (avant que le registre d'apps Django ne soit prêt).
+    from forge_log.models import ActionLog
+
+    field = ActionLog._meta.get_field(field_name)
+    assert isinstance(field, CharField)
+    assert field.max_length is not None
+    return field.max_length
 
 
 def record(
@@ -44,23 +57,33 @@ def record(
         return
 
     ctx = context or get_current_context()
+    object_repr = (
+        str(reference)
+        if reference is not None
+        else str(resolved_model._meta.verbose_name)
+    )
     entry = ActionLogEntry(
         timestamp=timezone.now(),
         user_id=ctx.user_id,
-        user_repr=ctx.user_repr,
+        # Troncature défensive : ces valeurs alimentent des CharField, et un
+        # __str__ de modèle un peu verbeux ou une route longue ferait
+        # planter l'écriture sur un backend qui valide la longueur de
+        # colonne (ex. varchar(n) strict sous PostgreSQL) au lieu de la
+        # tronquer silencieusement comme SQLite.
+        user_repr=ctx.user_repr[: _max_length("user_repr")],
         ip=ctx.ip,
         user_agent=ctx.user_agent,
-        endpoint=ctx.path,
-        http_method=ctx.method,
-        action=action,
+        endpoint=ctx.path[: _max_length("endpoint")],
+        http_method=ctx.method[: _max_length("http_method")],
+        action=action[: _max_length("action")],
         app_label=resolved_model._meta.app_label,
         model_name=resolved_model._meta.model_name or "",
-        object_id=str(reference.pk) if reference is not None else None,
-        object_repr=(
-            str(reference)
+        object_id=(
+            str(reference.pk)[: _max_length("object_id")]
             if reference is not None
-            else f"{resolved_model._meta.verbose_name}"
+            else None
         ),
+        object_repr=object_repr[: _max_length("object_repr")],
         changes=diff,
         metadata=metadata or {},
     )

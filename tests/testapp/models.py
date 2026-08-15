@@ -10,6 +10,11 @@ class Article(models.Model):
     parent = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
+    price = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    # Pas de default=uuid.uuid4 : deux Article(...) construits sans argument
+    # explicite doivent rester comparables (même valeur None) dans les tests
+    # de diff, plutôt que de générer chacun un UUID aléatoire différent.
+    external_ref = models.UUIDField(null=True, blank=True)
 
     class ForgeLogMeta:
         excluded_fields = ["internal_note"]

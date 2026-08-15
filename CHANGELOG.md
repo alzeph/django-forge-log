@@ -7,6 +7,38 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.0.0rc2] - 2026-08-15
+
+Durcissement uniquement (aucun changement d'API publique) : cinq bugs
+identifiés lors d'une revue de la version rc1, avant qu'ils ne touchent un
+usage réel.
+
+### Fixed
+
+- **Crash sur `DecimalField`/`UUIDField` suivi** : `JSONField` utilise
+  l'encodeur JSON standard par défaut, qui lève `TypeError` sur `Decimal`
+  et `UUID`. Un modèle avec un simple champ de prix faisait planter
+  l'écriture dès qu'il changeait. `changes`/`metadata` utilisent maintenant
+  `DjangoJSONEncoder` (gère aussi `datetime`/`date`/`UUID`/`Decimal`
+  nativement) — migration incluse.
+- **Requêtes N+1 sur les champs `ForeignKey` suivis** : le diff lisait
+  l'objet lié (`instance.parent`) au lieu de la seule colonne `parent_id`,
+  déclenchant une requête par instance non déjà mise en cache. Contredisait
+  la promesse de coût quasi nul des backends `thread`/`asyncio`.
+- **Condition de course sur le singleton `get_writer()`** : sans verrou,
+  deux threads d'un serveur WSGI threadé (gunicorn `--threads`, gthread)
+  pouvaient démarrer chacun leur propre `ThreadedWriter`, laissant un
+  thread démon orphelin jamais arrêté par `reset_writer()`.
+- **Troncature manquante sur les `CharField` de `ActionLog`** :
+  `object_repr`/`user_repr`/`action` non tronqués avant écriture pouvaient
+  faire planter l'insertion sur PostgreSQL (`varchar(n)` strict, contrairement
+  à SQLite qui tolère silencieusement).
+- **`X-Forwarded-For` non validé** avant stockage dans
+  `GenericIPAddressField` : header entièrement contrôlable par le client,
+  une valeur malformée faisait planter l'écriture sur PostgreSQL (type
+  `inet` strict). Validé via `ipaddress.ip_address()` désormais, `None` si
+  invalide.
+
 ## [1.0.0rc1] - 2026-08-15
 
 ### Added
@@ -41,5 +73,6 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   comme modifié dans le diff. La comparaison se fait maintenant sur les
   valeurs déjà sérialisées.
 
-[Unreleased]: https://github.com/alzeph/django-forge-log/compare/v1.0.0rc1...main
+[Unreleased]: https://github.com/alzeph/django-forge-log/compare/v1.0.0rc2...main
+[1.0.0rc2]: https://github.com/alzeph/django-forge-log/compare/v1.0.0rc1...v1.0.0rc2
 [1.0.0rc1]: https://github.com/alzeph/django-forge-log/commits/v1.0.0rc1
