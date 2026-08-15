@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: django_forge_log
+      POSTGRES_USER: django_forge_log
+      POSTGRES_PASSWORD: django_forge_log
+    ports:
+      - "5432:5432"
+
+  mysql:
+    image: mysql:9
+    environment:
+      MYSQL_DATABASE: django_forge_log
+      MYSQL_ROOT_PASSWORD: django_forge_log
+    ports:
+      - "3306:3306"

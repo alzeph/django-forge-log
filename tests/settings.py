@@ -1,3 +1,5 @@
+import os
+
 SECRET_KEY = "test-secret-key"
 
 INSTALLED_APPS = [
@@ -18,12 +20,39 @@ MIDDLEWARE = [
     "forge_log.middleware.RequestContextMiddleware",
 ]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",
+DB_BACKEND = os.environ.get("FORGE_LOG_TEST_DB", "sqlite")
+
+if DB_BACKEND == "postgres":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("FORGE_LOG_PG_NAME", "django_forge_log"),
+            "USER": os.environ.get("FORGE_LOG_PG_USER", "django_forge_log"),
+            "PASSWORD": os.environ.get("FORGE_LOG_PG_PASSWORD", "django_forge_log"),
+            "HOST": os.environ.get("FORGE_LOG_PG_HOST", "localhost"),
+            "PORT": os.environ.get("FORGE_LOG_PG_PORT", "5432"),
+        }
     }
-}
+elif DB_BACKEND == "mysql":
+    # "localhost" force le client MySQL à utiliser un socket Unix local
+    # plutôt que TCP, même avec un PORT explicite : on force donc 127.0.0.1.
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.environ.get("FORGE_LOG_MYSQL_NAME", "django_forge_log"),
+            "USER": os.environ.get("FORGE_LOG_MYSQL_USER", "root"),
+            "PASSWORD": os.environ.get("FORGE_LOG_MYSQL_PASSWORD", "django_forge_log"),
+            "HOST": os.environ.get("FORGE_LOG_MYSQL_HOST", "127.0.0.1"),
+            "PORT": os.environ.get("FORGE_LOG_MYSQL_PORT", "3306"),
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
 
 TEMPLATES = [
     {

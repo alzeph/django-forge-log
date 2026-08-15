@@ -32,6 +32,21 @@ def test_purge_deletes_old_entries_only():
 
 
 @pytest.mark.django_db
+def test_purge_dry_run_does_not_delete():
+    article = Article.objects.create(title="Titre", status="draft")
+    record("CREATE", None, article)
+    ActionLog.objects.update(timestamp=timezone.now() - timedelta(days=100))
+
+    from io import StringIO
+
+    stdout = StringIO()
+    call_command("forgelog_purge", "--days", "30", "--dry-run", stdout=stdout)
+
+    assert "seraient supprimées" in stdout.getvalue()
+    assert ActionLog.objects.count() == 1
+
+
+@pytest.mark.django_db
 def test_purge_without_retention_configured_writes_to_stderr():
     from io import StringIO
 

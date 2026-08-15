@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 from forge_log import signals_integration
@@ -10,6 +12,14 @@ from tests.testapp.models import Article
 @pytest.fixture(autouse=True)
 def _connect_signals():
     signals_integration.connect()
+
+
+def test_connect_is_a_noop_when_django_signals_all_is_unavailable(monkeypatch):
+    # Une entrée à None dans sys.modules force un ImportError à l'import
+    # suivant, ce qui simule l'extra `[signals]` non installé.
+    monkeypatch.setitem(sys.modules, "django_signals_all.signals", None)
+
+    signals_integration.connect()  # ne doit pas lever
 
 
 @pytest.mark.django_db

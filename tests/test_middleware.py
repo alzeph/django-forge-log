@@ -47,6 +47,23 @@ def test_middleware_anonymous_user_is_system_context():
     assert captured["context"].user_repr == "anonymous"
 
 
+def test_forwarded_for_header_takes_precedence_over_remote_addr():
+    captured = {}
+
+    def get_response(request):
+        captured["context"] = get_current_context()
+        return "response"
+
+    request = RequestFactory().get(
+        "/", HTTP_X_FORWARDED_FOR="203.0.113.5, 10.0.0.1", REMOTE_ADDR="127.0.0.1"
+    )
+    request.user = AnonymousUser()
+
+    RequestContextMiddleware(get_response)(request)
+
+    assert captured["context"].ip == "203.0.113.5"
+
+
 def test_context_is_reset_after_request():
     def get_response(request):
         return "response"

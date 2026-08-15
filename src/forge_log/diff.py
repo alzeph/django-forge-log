@@ -64,8 +64,11 @@ def compute_diff(
 
     changes: dict[str, FieldChange] = {}
     for name in sorted(set(before_values) | set(after_values)):
-        before_val = before_values.get(name)
-        after_val = after_values.get(name)
+        # Comparer les valeurs sérialisées, pas les objets bruts : deux
+        # FieldFile de deux instances différentes ne sont jamais égaux via
+        # `==` (pas d'__eq__ défini) même quand `.name` est identique.
+        before_val = _serialize(before_values.get(name))
+        after_val = _serialize(after_values.get(name))
         if before_val == after_val:
             continue
 
@@ -79,8 +82,6 @@ def compute_diff(
         if is_masked:
             changes[name] = FieldChange(masked=True)
         else:
-            changes[name] = FieldChange(
-                before=_serialize(before_val), after=_serialize(after_val)
-            )
+            changes[name] = FieldChange(before=before_val, after=after_val)
 
     return changes

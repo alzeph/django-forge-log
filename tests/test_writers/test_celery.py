@@ -10,6 +10,12 @@ from forge_log.writers import celery_writer
 from tests.testapp.models import Article
 
 
+def test_start_and_stop_are_noops():
+    writer = celery_writer.CeleryWriter()
+    writer.start()
+    writer.stop()
+
+
 @pytest.mark.django_db
 def test_celery_writer_serializes_payload_for_dispatch(monkeypatch):
     captured = {}

@@ -21,19 +21,30 @@ uv run mypy
 uv run pytest --cov=forge_log --cov-report=term-missing
 ```
 
+La suite `pytest` tourne par défaut sur SQLite. Pour la faire tourner aussi
+contre PostgreSQL et MySQL (recommandé pour toute modification du modèle
+`ActionLog`, du diff ou des writers — un `JSONField`/`GenericIPAddressField`
+peut se comporter différemment selon le dialecte) :
+
+```bash
+docker compose up -d
+FORGE_LOG_TEST_DB=postgres uv run pytest
+FORGE_LOG_TEST_DB=mysql uv run pytest
+```
+
 Ces mêmes vérifications tournent dans la CI (`.github/workflows/ci.yml`) et
 doivent toutes passer avant qu'une PR soit mergeable :
 
 - **ruff** : lint et formatage
 - **mypy** (`strict = true`, avec `django-stubs`) : le typage doit rester
   précis, y compris sur le code qui touche à l'ORM et aux signaux Django
-- **pytest** : contre Django 4.2/5.0/5.1/5.2 (SQLite). La suite couvre les
-  cinq backends d'écriture (`sync`, `on_commit`, `thread`, `asyncio`,
-  `celery`), le moteur de diff, le décorateur, le mixin DRF et
-  l'intégration `django-signals-all`. La couverture n'est pas verrouillée à
-  100 % pour l'instant (~90 %) : toute PR qui touche à `src/forge_log`
-  devrait ajouter un test pour la nouvelle branche de code plutôt que de
-  laisser baisser la couverture existante.
+- **pytest** : sur les trois SGBD supportés (SQLite, PostgreSQL, MySQL) et
+  contre Django 4.2/5.0/5.1/5.2 (SQLite). La suite couvre les cinq backends
+  d'écriture (`sync`, `on_commit`, `thread`, `asyncio`, `celery`), le moteur
+  de diff, le décorateur, le mixin DRF, l'Admin et l'intégration
+  `django-signals-all`. La couverture est verrouillée à 100 %
+  (`--cov-fail-under=100` via `[tool.coverage.report]`) : toute nouvelle
+  branche de code doit être testée.
 
 Si `pre-commit` est installé (`uv run pre-commit install`), ruff et mypy
 tournent automatiquement avant chaque commit.

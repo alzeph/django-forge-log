@@ -28,5 +28,15 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   `[celery]`) — pour découpler l'écriture du chemin de requête suivi.
 - Commande `forgelog_purge` pour la rétention.
 - Signal `forge_log.signals.action_logged` pour l'extensibilité.
+- CI multi-SGBD (SQLite, PostgreSQL, MySQL via `docker-compose.yml`) et
+  couverture de tests verrouillée à 100 % (`--cov-fail-under=100`).
+
+### Fixed
+
+- `compute_diff` comparait les valeurs brutes avant sérialisation : deux
+  `FieldFile` de deux instances différentes n'étant jamais égaux via `==`
+  (pas d'`__eq__` défini), un `FileField` inchangé pouvait apparaître à tort
+  comme modifié dans le diff. La comparaison se fait maintenant sur les
+  valeurs déjà sérialisées.
 
 [Unreleased]: https://github.com/alzeph/django-forge-log/commits/main

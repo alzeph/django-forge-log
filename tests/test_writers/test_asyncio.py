@@ -22,6 +22,14 @@ def _entry(object_id: str = "1") -> ActionLogEntry:
     )
 
 
+def test_start_stop_and_wait_pending_without_tasks_are_noops():
+    writer = AsyncTaskWriter()
+    writer.start()
+    writer.stop()
+
+    asyncio.run(writer.wait_pending())  # self._pending vide : ne doit rien attendre
+
+
 @pytest.mark.django_db
 def test_write_outside_event_loop_falls_back_to_sync_save():
     article = Article.objects.create(title="Titre", status="draft")

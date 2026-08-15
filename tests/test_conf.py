@@ -18,3 +18,11 @@ def test_override_settings_reloads(settings):
 def test_unknown_setting_raises():
     with pytest.raises(AttributeError):
         _ = app_settings.DOES_NOT_EXIST
+
+
+def test_unrelated_setting_change_does_not_reload(settings):
+    # Force le cache, puis modifie un réglage Django sans rapport : la
+    # branche `if setting == SETTINGS_KEY` ne doit pas se déclencher.
+    assert app_settings.ENABLED is True
+    settings.DEBUG = not settings.DEBUG
+    assert app_settings.ENABLED is True

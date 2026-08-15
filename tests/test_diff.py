@@ -42,3 +42,30 @@ def test_fields_argument_restricts_comparison():
     after = Article(pk=1, title="b", status="published")
     diff = compute_diff(before, after, fields=["status"])
     assert list(diff) == ["status"]
+
+
+def test_datetime_field_is_serialized_as_isoformat():
+    from datetime import UTC, datetime
+
+    when = datetime(2026, 1, 1, tzinfo=UTC)
+    before = Article(pk=1, title="a", published_at=None)
+    after = Article(pk=1, title="a", published_at=when)
+    diff = compute_diff(before, after, fields=["published_at"])
+    assert diff["published_at"].after == when.isoformat()
+
+
+def test_file_field_is_serialized_as_name_only():
+    before = Article(pk=1, title="a", cover="")
+    after = Article(pk=1, title="a", cover="covers/a.png")
+    diff = compute_diff(before, after, fields=["cover"])
+    assert diff["cover"].before is None
+    assert diff["cover"].after == "covers/a.png"
+
+
+def test_foreign_key_value_is_serialized_as_pk_string():
+    parent = Article(pk=7, title="parent")
+    before = Article(pk=1, title="a", parent=None)
+    after = Article(pk=1, title="a", parent=parent)
+    diff = compute_diff(before, after, fields=["parent"])
+    assert diff["parent"].before is None
+    assert diff["parent"].after == "7"

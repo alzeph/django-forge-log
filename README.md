@@ -230,7 +230,13 @@ uv run ruff check src tests
 uv run ruff format --check src tests
 uv run mypy
 
+# SQLite (par défaut, pas de dépendance externe)
 uv run pytest --cov=forge_log --cov-report=term-missing
+
+# PostgreSQL et MySQL (nécessite Docker)
+docker compose up -d
+FORGE_LOG_TEST_DB=postgres uv run pytest
+FORGE_LOG_TEST_DB=mysql uv run pytest
 ```
 
 Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour contribuer,

@@ -30,13 +30,46 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, postgres, mysql]
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: django_forge_log
+          POSTGRES_USER: django_forge_log
+          POSTGRES_PASSWORD: django_forge_log
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mysql:
+        image: mysql:9
+        env:
+          MYSQL_DATABASE: django_forge_log
+          MYSQL_ROOT_PASSWORD: django_forge_log
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv sync --locked --all-extras --group dev
-      - run: uv run pytest --cov=forge_log --cov-report=term-missing
+      - name: Run tests
+        env:
+          FORGE_LOG_TEST_DB: ${{ matrix.db }}
+        run: uv run pytest --cov=forge_log --cov-report=term-missing
 
   test-django-versions:
     runs-on: ubuntu-latest

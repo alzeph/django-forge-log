@@ -67,6 +67,38 @@ def test_explicit_get_instance_and_action():
 
 
 @pytest.mark.django_db
+def test_no_pk_in_kwargs_uses_default_getter_none_branch():
+    @track_action(Article)
+    def create_view(request):
+        return "ok"
+
+    class FakeRequest:
+        method = "POST"
+        path = "/articles/"
+
+    create_view(FakeRequest())
+
+    assert ActionLog.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_non_request_positional_arg_falls_back_to_custom_action():
+    article = Article.objects.create(title="Titre", status="draft")
+
+    @track_action(Article)
+    def update_status(marker, pk):
+        obj = Article.objects.get(pk=pk)
+        obj.status = "published"
+        obj.save()
+        return "ok"
+
+    update_status("not-a-request", pk=article.pk)
+
+    entry = ActionLog.objects.get()
+    assert entry.action == "CUSTOM"
+
+
+@pytest.mark.django_db
 def test_disabled_setting_skips_logging(settings):
     settings.FORGE_LOG = {"ENABLED": False}
     article = Article.objects.create(title="Titre", status="draft")
