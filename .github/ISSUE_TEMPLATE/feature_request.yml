@@ -1,0 +1,18 @@
+name: Proposition de fonctionnalité
+description: Proposer une amélioration pour django-forge-log
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème
+      description: Quel besoin n'est pas couvert aujourd'hui ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: Comment imaginez-vous la solution ?
+    validations:
+      required: true

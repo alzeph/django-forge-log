@@ -1,0 +1,26 @@
+name: Rapport de bug
+description: Signaler un comportement inattendu de django-forge-log
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Que se passe-t-il ? Que vous attendiez-vous à voir ?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction minimale
+      description: Modèle, décorateur/mixin utilisé, configuration FORGE_LOG.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: django-forge-log, Django, Python, backend d'écriture (WRITE_BACKEND)
+    validations:
+      required: true

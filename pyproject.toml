@@ -1,0 +1,106 @@
+[project]
+name = "django-forge-log"
+dynamic = ["version"]
+description = "Audit trail léger et automatique (Qui/Quoi/Quand/Où/Diff) pour les vues Django, DRF et l'Admin"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Cédric Hervé Youan", email = "hervecedricyouan@gmail.com" }]
+keywords = [
+    "django",
+    "audit-log",
+    "audit-trail",
+    "drf",
+    "django-rest-framework",
+    "logging",
+    "compliance",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "django>=4.2",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+drf = ["djangorestframework>=3.14"]
+signals = ["django-signals-all>=1.0.0rc2"]
+celery = ["celery>=5.3"]
+
+[project.urls]
+Repository = "https://github.com/alzeph/django-forge-log"
+Changelog = "https://github.com/alzeph/django-forge-log/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/forge_log/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/forge_log"]
+
+[dependency-groups]
+dev = [
+    "django-stubs>=5.1",
+    "mypy>=1.11",
+    "pre-commit>=3.8",
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "djangorestframework>=3.14",
+    "django-signals-all>=1.0.0rc2",
+    "celery>=5.3",
+    "ruff>=0.6",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+strict = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = "forge_log.drf"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "django_signals_all.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["forge_log"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:", "pragma: no cover"]
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"

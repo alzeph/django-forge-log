@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked --all-extras --group dev
+      - run: uv run ruff check src tests
+      - run: uv run ruff format --check src tests
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked --all-extras --group dev
+      - run: uv run mypy
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked --all-extras --group dev
+      - run: uv run pytest --cov=forge_log --cov-report=term-missing
+
+  test-django-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        django-version: ["4.2", "5.0", "5.1", "5.2"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked --all-extras --group dev
+      - name: Run tests against Django ${{ matrix.django-version }}
+        run: uv run --with "django==${{ matrix.django-version }}.*" pytest
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, test-django-versions]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv build
