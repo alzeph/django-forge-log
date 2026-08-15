@@ -7,6 +7,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.0.0rc1] - 2026-08-15
+
 ### Added
 
 - Modèle `ActionLog` : table d'audit centrale unique (Qui/Quoi/Quand/Où/Diff),
@@ -39,4 +41,5 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   comme modifié dans le diff. La comparaison se fait maintenant sur les
   valeurs déjà sérialisées.
 
-[Unreleased]: https://github.com/alzeph/django-forge-log/commits/main
+[Unreleased]: https://github.com/alzeph/django-forge-log/compare/v1.0.0rc1...main
+[1.0.0rc1]: https://github.com/alzeph/django-forge-log/commits/v1.0.0rc1
