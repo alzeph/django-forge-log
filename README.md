@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-> **Release candidate.** `django-forge-log` est en `1.0.0rc2` : l'API est
+> **Release candidate.** `django-forge-log` est en `1.0.0rc3` : l'API est
 > considérée figée mais n'a pas encore été éprouvée par un usage réel en
 > dehors de ce dépôt. Les retours (issues, cas d'usage, bugs) sont les
 > bienvenus avant de tagger la version `1.0.0` finale — voir
@@ -59,8 +59,8 @@ pas par défaut avec `pip install django-forge-log` — utilisez `--pre` ou
 fixez la version exacte tant que `1.0.0` n'est pas taggé :
 
 ```bash
-uv add "django-forge-log==1.0.0rc2"
-pip install "django-forge-log==1.0.0rc2"
+uv add "django-forge-log==1.0.0rc3"
+pip install "django-forge-log==1.0.0rc3"
 ```
 
 ```python
@@ -103,6 +103,24 @@ les kwargs de la vue (`pk`, ou le nom du champ clé primaire du modèle) — le
 cas courant `/resource/<pk>/`. Pour une création (pas de PK dans l'URL avant
 l'exécution de la vue), fournissez `get_instance` explicitement, ou préférez
 le mixin DRF ci-dessous.
+
+Les vues `async def` sont détectées automatiquement (`get_instance`, le
+calcul du diff et l'écriture basculent alors sur `sync_to_async`) :
+
+```python
+@track_action(Article)
+async def update_article(request, pk):
+    article = await Article.objects.aget(pk=pk)
+    article.status = "published"
+    await article.asave()
+    return JsonResponse(...)
+```
+
+Avec `WRITE_BACKEND="asyncio"`, ce chemin s'exécute dans le thread de
+l'executor plutôt que sur l'event loop : l'écriture retombe alors sur le
+mode synchrone d'`AsyncTaskWriter` plutôt que sur `asyncio.create_task()` —
+toujours correct, mais sans le gain de perf attendu. Préférez `thread` ou
+`celery` pour des vues suivies async à fort trafic.
 
 ### ViewSet DRF
 
@@ -164,6 +182,32 @@ INSTALLED_APPS = [..., "django_signals_all", "forge_log"]
 entrée agrégée est journalisée (`action="BULK_UPDATE"`, `object_id=None`),
 avec la liste des PK impactés dans `metadata`. `bulk_create()` et
 `Manager.bulk_update()` journalisent en revanche une entrée par instance.
+
+## Historique d'un objet
+
+```python
+ActionLog.objects.for_object(article)          # QuerySet, du plus récent au plus ancien
+ActionLog.objects.for_object(article).filter(action="UPDATE")
+```
+
+Ou directement depuis l'instance, en ajoutant le mixin au modèle suivi :
+
+```python
+from forge_log.relations import ForgeLogRelationMixin
+
+
+class Article(ForgeLogRelationMixin, models.Model):
+    ...
+
+
+article.forge_log_entries.all()  # équivalent à ActionLog.objects.for_object(article)
+```
+
+`ForgeLogRelationMixin` est une classe abstraite (aucun champ concret, donc
+aucune migration requise), volontairement **pas** un `GenericRelation` :
+`GenericRelation` impose `on_delete=CASCADE` de façon non configurable côté
+Django, ce qui supprimerait tout l'historique d'audit d'un objet au moment
+même où il est supprimé — l'inverse de ce qu'un audit trail doit garantir.
 
 ## Écriture asynchrone (`WRITE_BACKEND`)
 
@@ -256,17 +300,6 @@ FORGE_LOG = {
   une garantie stricte de durabilité, utilisez `on_commit` ou `celery`.
 - Le diff ne compare que les champs concrets du modèle (`_meta.concrete_fields`)
   ou la liste explicite passée à `fields=` — pas les relations M2M implicites.
-- `track_action` ne détecte pas les vues `async def` : les décorer silencieusement
-  ne les exécute pas correctement (voir roadmap ci-dessous).
-
-## Roadmap (`1.0.0rc3`)
-
-- Support des vues `async def` pour `track_action` (détection
-  `asyncio.iscoroutinefunction`, ORM via `sync_to_async`).
-- Helper de requête `ActionLog.objects.for_object(instance)` pour
-  l'historique d'un objet, au-dessus de l'index composite déjà en place.
-- `GenericRelation` optionnelle sur les modèles suivis
-  (`instance.forge_log_entries.all()`).
 
 ## Développement
 

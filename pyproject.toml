@@ -16,7 +16,7 @@ keywords = [
     "compliance",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
@@ -83,6 +83,11 @@ extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
+# UP047 (générique PEP 695) : décorators.py garde `TypeVar` au niveau module
+# pour rester cohérent — track_action() l'utilise déjà et ne peut pas migrer
+# proprement vers `def f[F](...)` sans casser le partage du type entre la
+# fonction externe et son wrapper interne.
+ignore = ["UP047"]
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]

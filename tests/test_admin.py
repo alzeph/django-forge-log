@@ -43,7 +43,10 @@ def test_audit_mixin_logs_delete():
     site = django_admin.AdminSite()
     admin_instance = ArticleAdmin(Article, site)
     article = Article.objects.create(title="Titre", status="draft")
+    pk = article.pk  # Model.delete() met article.pk à None en place
 
     admin_instance.delete_model(request=None, obj=article)
 
-    assert ActionLog.objects.get().action == "DELETE"
+    entry = ActionLog.objects.get()
+    assert entry.action == "DELETE"
+    assert entry.object_id == str(pk)

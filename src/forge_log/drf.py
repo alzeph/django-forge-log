@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 try:
     from rest_framework.serializers import BaseSerializer
 except ImportError as exc:  # pragma: no cover
@@ -40,8 +42,11 @@ class AuditViewSetMixin:
         record("UPDATE", before, serializer.instance, fields=self.forge_log_fields)
 
     def perform_destroy(self, instance: Model) -> None:
+        # Model.delete() met instance.pk à None en place : capturer un
+        # instantané avant, pour ne pas journaliser un object_id vide.
+        snapshot = copy.copy(instance)
         super().perform_destroy(instance)  # type: ignore[misc]
-        record("DELETE", instance, None, fields=self.forge_log_fields)
+        record("DELETE", snapshot, None, fields=self.forge_log_fields)
 
 
 def _refetch(instance: Model) -> Model | None:
