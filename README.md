@@ -5,8 +5,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-> **Développement précoce (`0.1.0`).** L'API n'est pas encore stabilisée —
-> voir la [politique de compatibilité](CONTRIBUTING.md#politique-de-compatibilité-et-dépréciation).
+> **Release candidate.** `django-forge-log` est en `1.0.0rc1` : l'API est
+> considérée figée mais n'a pas encore été éprouvée par un usage réel en
+> dehors de ce dépôt. Les retours (issues, cas d'usage, bugs) sont les
+> bienvenus avant de tagger la version `1.0.0` finale — voir
+> [RELEASING.md](RELEASING.md).
 
 Un audit trail léger et automatique — Qui, Quoi, Quand, Où, et le Diff
 avant/après — pour les vues Django (FBV, CBV, DRF ViewSets) et l'Admin,
@@ -23,8 +26,41 @@ vise une piste d'audit unique et compacte, avec un typage strict du diff.
 
 ## Installation
 
+Le cœur (middleware, décorateur, moteur de diff, Admin) ne dépend que de
+Django et Pydantic. Les intégrations DRF, `django-signals-all` et Celery
+sont des extras à activer séparément, à combiner selon les besoins :
+
 ```bash
+# Cœur seul
 uv add django-forge-log
+
+# Avec l'intégration DRF (forge_log.drf.AuditViewSetMixin)
+uv add "django-forge-log[drf]"
+
+# Avec l'intégration bulk django-signals-all (bulk_create/bulk_update/.update())
+uv add "django-forge-log[signals]"
+
+# Avec le backend d'écriture Celery (WRITE_BACKEND="celery")
+uv add "django-forge-log[celery]"
+
+# Plusieurs extras à la fois
+uv add "django-forge-log[drf,signals,celery]"
+```
+
+Avec `pip`, mêmes combinaisons :
+
+```bash
+pip install django-forge-log
+pip install "django-forge-log[drf,signals,celery]"
+```
+
+`rc1` n'étant pas encore une version finale, PyPI ne l'installe pas par
+défaut avec `pip install django-forge-log` — utilisez `--pre` ou fixez la
+version exacte tant que `1.0.0` n'est pas taggé :
+
+```bash
+uv add "django-forge-log==1.0.0rc1"
+pip install "django-forge-log==1.0.0rc1"
 ```
 
 ```python
