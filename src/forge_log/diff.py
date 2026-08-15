@@ -29,18 +29,31 @@ def _model_masked_fields(instance: Model) -> set[str]:
 
 def _snapshot(instance: Model, fields: list[str] | None) -> dict[str, Any]:
     tracked = fields or [f.name for f in instance._meta.concrete_fields]
-    return {name: getattr(instance, name) for name in tracked}
+    values: dict[str, Any] = {}
+    for name in tracked:
+        # .attname ("parent_id") plutôt que .name ("parent") pour les
+        # relations : lire l'objet lié via getattr(instance, "parent")
+        # déclenche une requête si non déjà mis en cache (N+1), alors que la
+        # seule chose sérialisée au final est le pk sous forme de chaîne.
+        field = instance._meta.get_field(name)
+        attname = getattr(field, "attname", name)
+        value = getattr(instance, attname)
+        if attname != name and value is not None:
+            value = str(value)
+        values[name] = value
+    return values
 
 
 def _serialize(value: Any) -> Any:
+    # DjangoJSONEncoder (voir ActionLog.changes) gère déjà date/UUID/Decimal
+    # au moment de l'écriture : FieldFile est le seul type qui a besoin d'un
+    # traitement ici, à la fois pour la sérialisation et pour la comparaison
+    # (deux FieldFile de deux instances différentes ne sont jamais égaux via
+    # `==`, faute d'__eq__, même quand `.name` est identique).
     from django.db.models.fields.files import FieldFile
 
     if isinstance(value, FieldFile):
         return value.name or None
-    if isinstance(value, Model):
-        return str(value.pk)
-    if hasattr(value, "isoformat"):
-        return value.isoformat()
     return value
 
 

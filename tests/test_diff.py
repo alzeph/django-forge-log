@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from forge_log.diff import compute_diff
 from tests.testapp.models import Article
 
@@ -44,14 +46,17 @@ def test_fields_argument_restricts_comparison():
     assert list(diff) == ["status"]
 
 
-def test_datetime_field_is_serialized_as_isoformat():
+def test_datetime_field_is_kept_as_a_raw_value():
+    # compute_diff ne sérialise plus lui-même date/UUID/Decimal en JSON :
+    # c'est DjangoJSONEncoder qui s'en charge au moment de l'écriture réelle
+    # en base (voir tests/test_json_encoding.py pour le test bout-en-bout).
     from datetime import UTC, datetime
 
     when = datetime(2026, 1, 1, tzinfo=UTC)
     before = Article(pk=1, title="a", published_at=None)
     after = Article(pk=1, title="a", published_at=when)
     diff = compute_diff(before, after, fields=["published_at"])
-    assert diff["published_at"].after == when.isoformat()
+    assert diff["published_at"].after == when
 
 
 def test_file_field_is_serialized_as_name_only():
@@ -69,3 +74,22 @@ def test_foreign_key_value_is_serialized_as_pk_string():
     diff = compute_diff(before, after, fields=["parent"])
     assert diff["parent"].before is None
     assert diff["parent"].after == "7"
+
+
+@pytest.mark.django_db
+def test_foreign_key_diff_does_not_trigger_extra_queries(django_assert_num_queries):
+    # Lire l'objet lié (plutôt que juste son id) déclencherait une requête
+    # par instance fraîchement récupérée (ni avant ni après en cache) : la
+    # comparaison doit se faire sur .parent_id, pas sur .parent.
+    parent = Article.objects.create(title="parent")
+    child = Article.objects.create(title="child", parent=parent)
+
+    before = Article.objects.get(pk=child.pk)
+    Article.objects.filter(pk=child.pk).update(parent=None)
+    after = Article.objects.get(pk=child.pk)
+
+    with django_assert_num_queries(0):
+        diff = compute_diff(before, after, fields=["parent"])
+
+    assert diff["parent"].before == str(parent.pk)
+    assert diff["parent"].after is None
