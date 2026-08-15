@@ -66,7 +66,9 @@ def track_action(
 
     `get_instance` reçoit les mêmes *args/**kwargs que la vue décorée et est
     appelé deux fois (avant et après l'exécution de la vue) pour obtenir
-    l'état avant/après.
+    l'état avant/après. Toujours une fonction *synchrone* (accès ORM
+    classique), y compris pour une vue `async def` : c'est le décorateur qui
+    la fait passer par `sync_to_async`, pas l'appelant.
 
     Détecte automatiquement une vue `async def` (`asgiref.sync.iscoroutinefunction`)
     et bascule `get_instance`/le calcul du diff/l'écriture sur `sync_to_async`,
