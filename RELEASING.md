@@ -18,12 +18,13 @@ au-delà de ce qui est écrit ici.
   *trusted publishing* configuré (voir ci-dessous) : l'autorisation passe
   par OIDC, pas par un token individuel.
 
-## Configuration initiale de PyPI (à faire une fois pour ce dépôt)
+## Configuration initiale de PyPI (déjà faite pour ce dépôt)
 
 `django-forge-log` publie via le *trusted publishing* de PyPI (OIDC) :
 aucun token long-lived à gérer, l'autorisation est liée à ce dépôt et à ce
-workflow GitHub Actions précis. Tant que cette configuration n'est pas
-faite, `publish.yml` échouera à l'étape de publication.
+workflow GitHub Actions précis. Configuré et vérifié en publiant `1.0.0rc1`
+et `1.0.0rc2` avec succès — les étapes ci-dessous ne sont à refaire que si
+le dépôt est renommé/déplacé, ou si le trusted publisher est révoqué.
 
 1. Créer un compte PyPI si besoin.
 2. Sur <https://pypi.org/manage/account/publishing/>, ajouter un
@@ -38,19 +39,21 @@ faite, `publish.yml` échouera à l'étape de publication.
    un environnement `pypi` (protège la publication, permet d'ajouter des
    reviewers si besoin).
 
-Cette configuration n'est à refaire que si le dépôt est renommé/déplacé, ou
-si le trusted publisher est révoqué.
-
 ## Publier une version
 
 ### 1. Choisir le numéro de version
 
-Suivre le [Semantic Versioning](https://semver.org/lang/fr/) :
-`MAJOR.MINOR.PATCH`. En cas de doute sur le type de bump, se référer à la
-section [Politique de compatibilité](CONTRIBUTING.md#politique-de-compatibilité-et-dépréciation)
-de CONTRIBUTING.md — avant `1.0.0`, aucune garantie de stabilité d'API
-n'est donnée, donc un `0.x` mineur peut casser la compatibilité s'il le
-documente.
+Tant que le projet est en phase de *release candidate* (`1.0.0rcN`, la
+situation actuelle), voir la section
+[Politique release candidate](#politique-release-candidate-avant-le-100-final)
+ci-dessous pour savoir s'il faut incrémenter le `N` (`rc2` → `rc3`) ou
+tagger `1.0.0` final.
+
+Une fois `1.0.0` taggé, suivre le
+[Semantic Versioning](https://semver.org/lang/fr/) classique
+(`MAJOR.MINOR.PATCH`) — voir la section
+[Politique de compatibilité](CONTRIBUTING.md#politique-de-compatibilité-et-dépréciation)
+de CONTRIBUTING.md en cas de doute sur le type de bump.
 
 ### 2. Préparer une branche de release
 
@@ -79,8 +82,23 @@ uv run pytest --cov=forge_log --cov-report=term-missing
 uv build
 ```
 
+Pour toute modification touchant `ActionLog`, le moteur de diff ou les
+writers, vérifier aussi contre PostgreSQL et MySQL — un comportement
+correct sous SQLite peut planter ailleurs (`varchar(n)` strict, colonne
+`inet`...), et la CI est le seul endroit où ça se voit sinon :
+
+```bash
+docker compose up -d
+FORGE_LOG_TEST_DB=postgres uv run pytest
+FORGE_LOG_TEST_DB=mysql uv run pytest
+docker compose down
+```
+
 Toutes ces commandes doivent passer avant de continuer. Elles correspondent
-exactement à ce que la CI (`.github/workflows/ci.yml`) revérifie sur la PR.
+exactement à ce que la CI (`.github/workflows/ci.yml`) revérifie sur la PR
+— la matrice `test (sqlite|postgres|mysql)` en particulier a déjà rattrapé
+un bug de test qui passait en local (sur SQLite) et pas en CI (voir
+`CHANGELOG.md`, `1.0.0rc2`).
 
 ### 4. Ouvrir une PR et merger
 
@@ -118,3 +136,27 @@ build et publie automatiquement sur PyPI.
 - Vérifier ensuite que le job `publish` de `.github/workflows/publish.yml`
   se termine avec succès (`gh run watch` ou l'onglet Actions du dépôt) et
   que la version apparaît sur <https://pypi.org/project/django-forge-log/>.
+
+## Politique release candidate avant le 1.0.0 final
+
+`1.0.0rc1`/`rc2`/`rc3` sont des *release candidates* successives : l'API
+est considérée figée mais n'a pas encore été éprouvée par un usage réel en
+dehors de ce dépôt. Avant de tagger `1.0.0` (final) :
+
+- laisser la RC courante disponible au moins quelques semaines pour
+  recueillir des retours (issues, cas d'usage réels, bugs) ;
+- si un bug est trouvé, publier une nouvelle RC (`rcN+1`) plutôt que de
+  modifier une RC déjà publiée a posteriori — chaque tag/release PyPI est
+  immuable ;
+- une RC peut aussi bien contenir uniquement des correctifs (`1.0.0rc1` →
+  `1.0.0rc2`, cinq bugs de robustesse, aucun changement d'API) que de
+  nouvelles fonctionnalités qui complètent l'API avant qu'elle ne soit
+  gelée pour de bon (`1.0.0rc2` → `1.0.0rc3`) — les deux sont légitimes
+  tant que `1.0.0` final n'est pas taggé ;
+- un changement d'API entre deux RC doit être documenté dans
+  `CHANGELOG.md` (section `### Changed`/`### Added`/`### Removed` selon le
+  cas), la RC restant par nature une pré-version sans garantie de stabilité.
+
+Une fois `1.0.0` taggé, voir la politique de compatibilité dans
+[CONTRIBUTING.md](CONTRIBUTING.md#politique-de-compatibilité-et-dépréciation)
+— plus aucun changement cassant hors d'un `MAJOR` bump.

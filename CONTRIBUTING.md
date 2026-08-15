@@ -83,10 +83,11 @@ récente sans en discuter d'abord dans une issue.
 ## Politique de compatibilité et dépréciation
 
 `django-forge-log` suit le [Semantic Versioning](https://semver.org/lang/fr/).
-Avant `1.0.0` (versions `0.x.y`, où le projet se trouve actuellement),
-aucune garantie de stabilité de l'API n'est donnée — un changement cassant
-peut arriver dans un `0.x` mineur, mais doit être documenté dans
-`CHANGELOG.md` sous `### Changed` ou `### Removed`.
+Le projet est actuellement en phase de *release candidate* (`1.0.0rcN`) :
+l'API est considérée figée mais n'a pas encore été éprouvée par un usage
+réel en dehors de ce dépôt — voir la
+[politique release candidate](RELEASING.md#politique-release-candidate-avant-le-100-final)
+dans RELEASING.md pour ce qui peut/ne peut pas changer d'une RC à l'autre.
 
 À partir de `1.0.0` :
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 from django.contrib import admin
@@ -61,5 +62,8 @@ class AuditModelAdminMixin:
         )
 
     def delete_model(self, request: Any, obj: Model) -> None:
+        # Model.delete() met obj.pk à None en place : capturer un instantané
+        # avant, pour ne pas journaliser un object_id vide.
+        snapshot = copy.copy(obj)
         super().delete_model(request, obj)  # type: ignore[misc]
-        record("DELETE", obj, None, fields=self.forge_log_fields)
+        record("DELETE", snapshot, None, fields=self.forge_log_fields)

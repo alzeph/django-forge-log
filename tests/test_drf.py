@@ -50,9 +50,10 @@ def test_perform_update_logs_diff():
 @pytest.mark.django_db
 def test_perform_destroy_logs_delete():
     article = Article.objects.create(title="Titre", status="draft")
+    pk = article.pk  # Model.delete() met article.pk à None en place
 
     ArticleViewSet().perform_destroy(article)
 
     entry = ActionLog.objects.get()
     assert entry.action == "DELETE"
-    assert entry.object_id == str(article.pk)
+    assert entry.object_id == str(pk)

@@ -9,6 +9,18 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 
+class ActionLogQuerySet(models.QuerySet["ActionLog"]):
+    def for_object(self, instance: models.Model) -> ActionLogQuerySet:
+        """Historique d'un objet précis, du plus récent au plus ancien.
+
+        S'appuie sur l'index composite `(content_type, object_id, -timestamp)`
+        déjà en place — pas de requête supplémentaire pour résoudre le
+        ContentType, `get_for_model` est mis en cache par Django.
+        """
+        content_type = ContentType.objects.get_for_model(instance)
+        return self.filter(content_type=content_type, object_id=str(instance.pk))
+
+
 class ActionLog(models.Model):
     """Table d'audit centrale : Qui/Quoi/Quand/Où/Diff pour toute mutation suivie."""
 
@@ -52,6 +64,8 @@ class ActionLog(models.Model):
     # JSON serializable`) au lieu de simplement journaliser la valeur.
     changes = models.JSONField(default=dict, blank=True, encoder=DjangoJSONEncoder)
     metadata = models.JSONField(default=dict, blank=True, encoder=DjangoJSONEncoder)
+
+    objects = ActionLogQuerySet.as_manager()
 
     class Meta:
         ordering = ["-timestamp"]
