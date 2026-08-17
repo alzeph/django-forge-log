@@ -1,18 +1,20 @@
-# Contribuer à django-forge-log
+# Contributing to django-forge-log
 
-Merci de vouloir contribuer ! Ce guide décrit comment mettre en place
-l'environnement de développement et les attentes pour une pull request.
+*English | [Français](CONTRIBUTING.fr.md)*
 
-## Mise en place
+Thanks for wanting to contribute! This guide describes how to set up
+the development environment and what's expected from a pull request.
 
-Le projet utilise [uv](https://docs.astral.sh/uv/) pour la gestion des
-dépendances et de l'environnement virtuel.
+## Setup
+
+The project uses [uv](https://docs.astral.sh/uv/) for dependency and
+virtual environment management.
 
 ```bash
 uv sync --group dev
 ```
 
-## Vérifications avant de proposer une PR
+## Checks before submitting a PR
 
 ```bash
 uv run ruff check src tests
@@ -21,10 +23,11 @@ uv run mypy
 uv run pytest --cov=forge_log --cov-report=term-missing
 ```
 
-La suite `pytest` tourne par défaut sur SQLite. Pour la faire tourner aussi
-contre PostgreSQL et MySQL (recommandé pour toute modification du modèle
-`ActionLog`, du diff ou des writers — un `JSONField`/`GenericIPAddressField`
-peut se comporter différemment selon le dialecte) :
+The `pytest` suite runs against SQLite by default. To also run it
+against PostgreSQL and MySQL (recommended for any change touching the
+`ActionLog` model, the diff, or the writers — a
+`JSONField`/`GenericIPAddressField` can behave differently depending
+on the dialect):
 
 ```bash
 docker compose up -d
@@ -32,75 +35,74 @@ FORGE_LOG_TEST_DB=postgres uv run pytest
 FORGE_LOG_TEST_DB=mysql uv run pytest
 ```
 
-Ces mêmes vérifications tournent dans la CI (`.github/workflows/ci.yml`) et
-doivent toutes passer avant qu'une PR soit mergeable :
+These same checks run in CI (`.github/workflows/ci.yml`) and must all
+pass before a PR is mergeable:
 
-- **ruff** : lint et formatage
-- **mypy** (`strict = true`, avec `django-stubs`) : le typage doit rester
-  précis, y compris sur le code qui touche à l'ORM et aux signaux Django
-- **pytest** : sur les trois SGBD supportés (SQLite, PostgreSQL, MySQL) et
-  contre Django 4.2/5.0/5.1/5.2 (SQLite). La suite couvre les cinq backends
-  d'écriture (`sync`, `on_commit`, `thread`, `asyncio`, `celery`), le moteur
-  de diff, le décorateur, le mixin DRF, l'Admin et l'intégration
-  `django-signals-all`. La couverture est verrouillée à 100 %
-  (`--cov-fail-under=100` via `[tool.coverage.report]`) : toute nouvelle
-  branche de code doit être testée.
+- **ruff**: lint and formatting
+- **mypy** (`strict = true`, with `django-stubs`): typing must stay
+  precise, including on code touching the ORM and Django signals
+- **pytest**: on the three supported databases (SQLite, PostgreSQL,
+  MySQL) and against Django 4.2/5.0/5.1/5.2 (SQLite). The suite covers
+  the five write backends (`sync`, `on_commit`, `thread`, `asyncio`,
+  `celery`), the diff engine, the decorator, the DRF mixin, the Admin,
+  and the `django-signals-all` integration. Coverage is locked at 100%
+  (`--cov-fail-under=100` via `[tool.coverage.report]`): any new code
+  branch must be tested.
 
-Si `pre-commit` est installé (`uv run pre-commit install`), ruff et mypy
-tournent automatiquement avant chaque commit.
+If `pre-commit` is installed (`uv run pre-commit install`), ruff and
+mypy run automatically before each commit.
 
-## Compatibilité
+## Compatibility
 
-`django-forge-log` cible **Python 3.12+** et **Django 4.2+** (LTS courante
-et versions suivantes). Toute PR doit rester compatible avec ces versions
-minimales ; ne pas introduire de dépendance implicite à une version plus
-récente sans en discuter d'abord dans une issue.
+`django-forge-log` targets **Python 3.12+** and **Django 4.2+**
+(current LTS and later versions). Any PR must remain compatible with
+these minimum versions; do not introduce an implicit dependency on a
+newer version without discussing it in an issue first.
 
-## Style de code
+## Code style
 
-- Pas de commentaire qui explique le *quoi* (le code doit être lisible par
-  lui-même) — seulement le *pourquoi* quand c'est non évident (contraintes
-  cachées, comportement Django non documenté, contournement d'un bug connu).
-- Pas d'abstraction ou de fonctionnalité ajoutée au-delà de ce que demande
-  le changement.
-- Le cœur (`forge_log.decorators`, `forge_log.middleware`, `forge_log.admin`,
-  `forge_log.models`) ne doit jamais dépendre de DRF ni de
-  `django-signals-all` — ces intégrations restent dans `forge_log.drf` et
-  `forge_log.signals_integration`, chargées en extra (`[drf]`, `[signals]`).
-  Un `import` direct de `rest_framework`/`django_signals_all` en dehors de
-  ces deux modules est une régression.
-- Tout nouveau champ journalisé par défaut (diff, contexte de requête) doit
-  être passé au crible de la section Sécurité/PII du README avant d'être
-  mergé : un champ sensible qui fuite dans `ActionLog.changes` est un bug
-  de sévérité haute, pas un détail d'implémentation.
+- No comments explaining the *what* (the code should be readable on
+  its own) — only the *why* when it's not obvious (hidden constraints,
+  undocumented Django behavior, a workaround for a known bug).
+- No abstraction or feature added beyond what the change requires.
+- The core (`forge_log.decorators`, `forge_log.middleware`,
+  `forge_log.admin`, `forge_log.models`) must never depend on DRF or
+  `django-signals-all` — those integrations stay in `forge_log.drf` and
+  `forge_log.signals_integration`, loaded as extras (`[drf]`,
+  `[signals]`). A direct `import` of `rest_framework`/
+  `django_signals_all` outside of these two modules is a regression.
+- Any new field logged by default (diff, request context) must be run
+  through the Security/PII section of the README before being merged:
+  a sensitive field leaking into `ActionLog.changes` is a high-severity
+  bug, not an implementation detail.
 
-## Commits et PR
+## Commits and PRs
 
-- Un message de commit clair, qui explique le *pourquoi* du changement.
-- Une PR = un sujet. Préférer plusieurs petites PR à une seule PR fourre-tout.
-- Décrire dans la description de la PR ce qui change et comment c'est testé.
+- A clear commit message that explains the *why* of the change.
+- One PR = one topic. Prefer several small PRs over one catch-all PR.
+- Describe in the PR description what changes and how it's tested.
 
-## Politique de compatibilité et dépréciation
+## Compatibility and deprecation policy
 
-`django-forge-log` suit le [Semantic Versioning](https://semver.org/lang/fr/).
-Le projet est actuellement en phase de *release candidate* (`1.0.0rcN`) :
-l'API est considérée figée mais n'a pas encore été éprouvée par un usage
-réel en dehors de ce dépôt — voir la
-[politique release candidate](RELEASING.md#politique-release-candidate-avant-le-100-final)
-dans RELEASING.md pour ce qui peut/ne peut pas changer d'une RC à l'autre.
+`django-forge-log` follows [Semantic Versioning](https://semver.org/).
+The project is currently in the *release candidate* phase
+(`1.0.0rcN`): the API is considered frozen but has not yet been
+exercised by real-world usage outside of this repository — see the
+[release candidate policy](RELEASING.md#release-candidate-policy-before-the-final-100)
+in RELEASING.md for what can/cannot change from one RC to the next.
 
-À partir de `1.0.0` :
+Starting from `1.0.0`:
 
-- un **major** (`X.0.0`) peut casser la compatibilité ;
-- un **minor** (`1.X.0`) ajoute des fonctionnalités sans rien casser ;
-- un **patch** (`1.0.X`) ne contient que des corrections de bug.
+- a **major** (`X.0.0`) can break compatibility;
+- a **minor** (`1.X.0`) adds features without breaking anything;
+- a **patch** (`1.0.X`) contains only bug fixes.
 
-Après `1.0.0`, toute API publique dépréciée continue de fonctionner et lève
-un `DeprecationWarning` explicite pendant au moins une version mineure
-complète avant d'être retirée dans un major suivant.
+After `1.0.0`, any deprecated public API keeps working and raises an
+explicit `DeprecationWarning` for at least one full minor version
+before being removed in a later major version.
 
-## Signaler un bug ou proposer une fonctionnalité
+## Reporting a bug or proposing a feature
 
-Ouvrez une [issue](https://github.com/alzeph/django-forge-log/issues) en
-utilisant le template approprié. Pour une faille de sécurité, voir
-[SECURITY.md](SECURITY.md) plutôt qu'une issue publique.
+Open an [issue](https://github.com/alzeph/django-forge-log/issues)
+using the appropriate template. For a security vulnerability, see
+[SECURITY.md](SECURITY.md) instead of a public issue.

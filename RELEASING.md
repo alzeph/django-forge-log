@@ -1,78 +1,81 @@
-# Process de release
+# Release process
 
-Ce document décrit comment publier une nouvelle version de
-`django-forge-log` sur PyPI. Il s'adresse à toute personne ayant les droits
-nécessaires sur le dépôt (pas seulement au mainteneur d'origine) : suivre
-ces étapes dans l'ordre doit suffire, sans connaissance implicite du projet
-au-delà de ce qui est écrit ici.
+*English | [Français](RELEASING.fr.md)*
 
-## Qui peut publier
+This document describes how to publish a new version of
+`django-forge-log` to PyPI. It's intended for anyone with the
+necessary rights on the repository (not just the original maintainer):
+following these steps in order should be enough, with no implicit
+knowledge of the project beyond what's written here.
 
-- Un accès en écriture sur le dépôt GitHub `alzeph/django-forge-log` (pour
-  créer une branche, un tag, et pousser sur `main`).
-- Les droits pour créer/approuver une
-  [GitHub Release](https://github.com/alzeph/django-forge-log/releases). Si
-  l'environnement `pypi` (voir plus bas) a des reviewers configurés, leur
-  approbation est nécessaire avant que `publish.yml` ne s'exécute.
-- Aucun compte PyPI personnel n'est requis pour publier une fois le
-  *trusted publishing* configuré (voir ci-dessous) : l'autorisation passe
-  par OIDC, pas par un token individuel.
+## Who can publish
 
-## Configuration initiale de PyPI (déjà faite pour ce dépôt)
+- Write access to the `alzeph/django-forge-log` GitHub repository (to
+  create a branch, a tag, and push to `main`).
+- Rights to create/approve a
+  [GitHub Release](https://github.com/alzeph/django-forge-log/releases).
+  If the `pypi` environment (see below) has reviewers configured, their
+  approval is required before `publish.yml` runs.
+- No personal PyPI account is required to publish once *trusted
+  publishing* is configured (see below): authorization goes through
+  OIDC, not an individual token.
 
-`django-forge-log` publie via le *trusted publishing* de PyPI (OIDC) :
-aucun token long-lived à gérer, l'autorisation est liée à ce dépôt et à ce
-workflow GitHub Actions précis. Configuré et vérifié en publiant `1.0.0rc1`
-et `1.0.0rc2` avec succès — les étapes ci-dessous ne sont à refaire que si
-le dépôt est renommé/déplacé, ou si le trusted publisher est révoqué.
+## Initial PyPI setup (already done for this repository)
 
-1. Créer un compte PyPI si besoin.
-2. Sur <https://pypi.org/manage/account/publishing/>, ajouter un
-   *pending trusted publisher* (le projet n'a pas besoin d'exister sur PyPI
-   au préalable) :
-   - PyPI project name : `django-forge-log`
-   - Owner : `alzeph`
-   - Repository name : `django-forge-log`
-   - Workflow name : `publish.yml`
-   - Environment name : `pypi`
-3. Dans les paramètres GitHub du dépôt (`Settings > Environments`), créer
-   un environnement `pypi` (protège la publication, permet d'ajouter des
-   reviewers si besoin).
+`django-forge-log` publishes via PyPI's *trusted publishing* (OIDC): no
+long-lived token to manage, authorization is tied to this exact
+repository and this exact GitHub Actions workflow. Configured and
+verified by successfully publishing `1.0.0rc1` and `1.0.0rc2` — the
+steps below only need to be redone if the repository is
+renamed/moved, or if the trusted publisher is revoked.
 
-## Publier une version
+1. Create a PyPI account if needed.
+2. On <https://pypi.org/manage/account/publishing/>, add a *pending
+   trusted publisher* (the project doesn't need to already exist on
+   PyPI):
+   - PyPI project name: `django-forge-log`
+   - Owner: `alzeph`
+   - Repository name: `django-forge-log`
+   - Workflow name: `publish.yml`
+   - Environment name: `pypi`
+3. In the repository's GitHub settings (`Settings > Environments`),
+   create a `pypi` environment (protects the publish step, allows
+   adding reviewers if needed).
 
-### 1. Choisir le numéro de version
+## Publishing a version
 
-Tant que le projet est en phase de *release candidate* (`1.0.0rcN`, la
-situation actuelle), voir la section
-[Politique release candidate](#politique-release-candidate-avant-le-100-final)
-ci-dessous pour savoir s'il faut incrémenter le `N` (`rc2` → `rc3`) ou
-tagger `1.0.0` final.
+### 1. Choose the version number
 
-Une fois `1.0.0` taggé, suivre le
-[Semantic Versioning](https://semver.org/lang/fr/) classique
-(`MAJOR.MINOR.PATCH`) — voir la section
-[Politique de compatibilité](CONTRIBUTING.md#politique-de-compatibilité-et-dépréciation)
-de CONTRIBUTING.md en cas de doute sur le type de bump.
+While the project is in the *release candidate* phase (`1.0.0rcN`, the
+current situation), see the
+[Release candidate policy](#release-candidate-policy-before-the-final-100)
+section below to decide whether to bump `N` (`rc2` → `rc3`) or tag the
+final `1.0.0`.
 
-### 2. Préparer une branche de release
+Once `1.0.0` is tagged, follow standard
+[Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`) — see
+the
+[Compatibility policy](CONTRIBUTING.md#compatibility-and-deprecation-policy)
+section of CONTRIBUTING.md if in doubt about the bump type.
 
-Ne pas committer directement sur `main`. Créer une branche dédiée :
+### 2. Prepare a release branch
+
+Don't commit directly to `main`. Create a dedicated branch:
 
 ```bash
 git checkout -b release/X.Y.Z
 ```
 
-Sur cette branche :
+On this branch:
 
-1. Mettre à jour `__version__` dans `src/forge_log/__init__.py` (la version
-   du package est single-sourcée depuis ce fichier, voir
-   `[tool.hatch.version]` dans `pyproject.toml`).
-2. Déplacer le contenu de `## [Unreleased]` dans `CHANGELOG.md` sous une
-   nouvelle section `## [X.Y.Z] - AAAA-MM-JJ`, et mettre à jour les liens
-   de comparaison en bas de fichier.
+1. Update `__version__` in `src/forge_log/__init__.py` (the package
+   version is single-sourced from this file, see
+   `[tool.hatch.version]` in `pyproject.toml`).
+2. Move the content of `## [Unreleased]` into `CHANGELOG.md` **and**
+   `CHANGELOG.fr.md` under a new `## [X.Y.Z] - YYYY-MM-DD` section, and
+   update the comparison links at the bottom of each file.
 
-### 3. Vérifier localement
+### 3. Verify locally
 
 ```bash
 uv run ruff check src tests
@@ -82,10 +85,10 @@ uv run pytest --cov=forge_log --cov-report=term-missing
 uv build
 ```
 
-Pour toute modification touchant `ActionLog`, le moteur de diff ou les
-writers, vérifier aussi contre PostgreSQL et MySQL — un comportement
-correct sous SQLite peut planter ailleurs (`varchar(n)` strict, colonne
-`inet`...), et la CI est le seul endroit où ça se voit sinon :
+For any change touching `ActionLog`, the diff engine, or the writers,
+also verify against PostgreSQL and MySQL — correct behavior under
+SQLite can crash elsewhere (strict `varchar(n)`, `inet` column...),
+and CI is the only place that would otherwise catch it:
 
 ```bash
 docker compose up -d
@@ -94,28 +97,28 @@ FORGE_LOG_TEST_DB=mysql uv run pytest
 docker compose down
 ```
 
-Toutes ces commandes doivent passer avant de continuer. Elles correspondent
-exactement à ce que la CI (`.github/workflows/ci.yml`) revérifie sur la PR
-— la matrice `test (sqlite|postgres|mysql)` en particulier a déjà rattrapé
-un bug de test qui passait en local (sur SQLite) et pas en CI (voir
+All these commands must pass before continuing. They match exactly
+what CI (`.github/workflows/ci.yml`) re-checks on the PR — the
+`test (sqlite|postgres|mysql)` matrix in particular has already caught
+a test bug that passed locally (on SQLite) but not in CI (see
 `CHANGELOG.md`, `1.0.0rc2`).
 
-### 4. Ouvrir une PR et merger
+### 4. Open a PR and merge
 
 ```bash
 git add -A
 git commit -m "Release X.Y.Z"
 git push -u origin release/X.Y.Z
-gh pr create --base main --title "Release X.Y.Z" --body "Voir CHANGELOG.md"
+gh pr create --base main --title "Release X.Y.Z" --body "See CHANGELOG.md"
 ```
 
-Attendre que la CI passe sur la PR, puis merger dans `main`.
+Wait for CI to pass on the PR, then merge into `main`.
 
-### 5. Tagger
+### 5. Tag
 
-Se remettre sur `main` à jour, puis créer un **tag annoté** (porte un
-message et un auteur, contrairement à un tag léger — c'est la pratique
-standard pour marquer une release) :
+Switch back to an up-to-date `main`, then create an **annotated tag**
+(carries a message and an author, unlike a lightweight tag — this is
+the standard practice for marking a release):
 
 ```bash
 git checkout main
@@ -124,39 +127,39 @@ git tag -a vX.Y.Z -m "Release X.Y.Z"
 git push origin vX.Y.Z
 ```
 
-### 6. Créer la GitHub Release
+### 6. Create the GitHub Release
 
-Créer une [GitHub Release](https://github.com/alzeph/django-forge-log/releases/new)
-à partir du tag `vX.Y.Z`, avec les notes de version reprises de
-`CHANGELOG.md`. La publier déclenche `.github/workflows/publish.yml`, qui
-build et publie automatiquement sur PyPI.
+Create a [GitHub Release](https://github.com/alzeph/django-forge-log/releases/new)
+from the `vX.Y.Z` tag, with release notes taken from `CHANGELOG.md`.
+Publishing it triggers `.github/workflows/publish.yml`, which builds
+and publishes automatically to PyPI.
 
-- Avant `1.0.0`, cocher **"Set as a pre-release"** est optionnel mais
-  recommandé pour signaler l'absence de garantie de stabilité de l'API.
-- Vérifier ensuite que le job `publish` de `.github/workflows/publish.yml`
-  se termine avec succès (`gh run watch` ou l'onglet Actions du dépôt) et
-  que la version apparaît sur <https://pypi.org/project/django-forge-log/>.
+- Before `1.0.0`, checking **"Set as a pre-release"** is optional but
+  recommended to signal the lack of API stability guarantees.
+- Then verify that the `publish` job of
+  `.github/workflows/publish.yml` completes successfully (`gh run
+  watch` or the repository's Actions tab) and that the version appears
+  on <https://pypi.org/project/django-forge-log/>.
 
-## Politique release candidate avant le 1.0.0 final
+## Release candidate policy before the final 1.0.0
 
-`1.0.0rc1`/`rc2`/`rc3` sont des *release candidates* successives : l'API
-est considérée figée mais n'a pas encore été éprouvée par un usage réel en
-dehors de ce dépôt. Avant de tagger `1.0.0` (final) :
+`1.0.0rc1`/`rc2`/`rc3` are successive *release candidates*: the API is
+considered frozen but has not yet been exercised by real-world usage
+outside of this repository. Before tagging `1.0.0` (final):
 
-- laisser la RC courante disponible au moins quelques semaines pour
-  recueillir des retours (issues, cas d'usage réels, bugs) ;
-- si un bug est trouvé, publier une nouvelle RC (`rcN+1`) plutôt que de
-  modifier une RC déjà publiée a posteriori — chaque tag/release PyPI est
-  immuable ;
-- une RC peut aussi bien contenir uniquement des correctifs (`1.0.0rc1` →
-  `1.0.0rc2`, cinq bugs de robustesse, aucun changement d'API) que de
-  nouvelles fonctionnalités qui complètent l'API avant qu'elle ne soit
-  gelée pour de bon (`1.0.0rc2` → `1.0.0rc3`) — les deux sont légitimes
-  tant que `1.0.0` final n'est pas taggé ;
-- un changement d'API entre deux RC doit être documenté dans
-  `CHANGELOG.md` (section `### Changed`/`### Added`/`### Removed` selon le
-  cas), la RC restant par nature une pré-version sans garantie de stabilité.
+- leave the current RC available for at least a few weeks to gather
+  feedback (issues, real use cases, bugs);
+- if a bug is found, publish a new RC (`rcN+1`) rather than modifying
+  an already-published RC after the fact — every PyPI tag/release is
+  immutable;
+- an RC can contain either only fixes (`1.0.0rc1` → `1.0.0rc2`, five
+  robustness bugs, no API change) or new features that round out the
+  API before it's frozen for good (`1.0.0rc2` → `1.0.0rc3`) — both are
+  legitimate as long as the final `1.0.0` hasn't been tagged;
+- an API change between two RCs must be documented in `CHANGELOG.md`
+  (`### Changed`/`### Added`/`### Removed` section as appropriate), the
+  RC remaining by nature a pre-version with no stability guarantee.
 
-Une fois `1.0.0` taggé, voir la politique de compatibilité dans
-[CONTRIBUTING.md](CONTRIBUTING.md#politique-de-compatibilité-et-dépréciation)
-— plus aucun changement cassant hors d'un `MAJOR` bump.
+Once `1.0.0` is tagged, see the compatibility policy in
+[CONTRIBUTING.md](CONTRIBUTING.md#compatibility-and-deprecation-policy)
+— no more breaking changes outside of a `MAJOR` bump.

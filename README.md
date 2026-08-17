@@ -5,58 +5,61 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-> **Release candidate.** `django-forge-log` est en `1.0.0rc3` : l'API est
-> considérée figée mais n'a pas encore été éprouvée par un usage réel en
-> dehors de ce dépôt. Les retours (issues, cas d'usage, bugs) sont les
-> bienvenus avant de tagger la version `1.0.0` finale — voir
+*English | [Français](README.fr.md)*
+
+> **Release candidate.** `django-forge-log` is at `1.0.0rc3`: the API is
+> considered frozen but has not yet been exercised by real-world usage
+> outside of this repository. Feedback (issues, use cases, bugs) is
+> welcome before the final `1.0.0` is tagged — see
 > [RELEASING.md](RELEASING.md).
 
-Un audit trail léger et automatique — Qui, Quoi, Quand, Où, et le Diff
-avant/après — pour les vues Django (FBV, CBV, DRF ViewSets) et l'Admin,
-stocké dans une seule table JSON centrale.
+A lightweight, automatic audit trail — Who, What, When, Where, and the
+before/after Diff — for Django views (FBV, CBV, DRF ViewSets) and the
+Admin, stored in a single central JSON table.
 
-## Le problème
+## The problem
 
-Le `LogEntry` natif de `django.contrib.admin` ne trace que ce qui passe par
-l'Admin. Dès qu'une mutation passe par une API DRF, une vue classique ou un
-script, plus rien n'est journalisé. `django-simple-history`/`django-reversion`
-résolvent ça en dupliquant une table par modèle suivi — lourd, et ça
-n'explique pas *qui* a fait le changement ni *depuis où*. `django-forge-log`
-vise une piste d'audit unique et compacte, avec un typage strict du diff.
+The native `LogEntry` from `django.contrib.admin` only tracks what goes
+through the Admin. As soon as a mutation goes through a DRF API, a plain
+view, or a script, nothing gets logged anymore. `django-simple-history`/
+`django-reversion` solve this by duplicating a table per tracked model —
+heavy, and it doesn't explain *who* made the change or *from where*.
+`django-forge-log` aims for a single, compact audit trail, with strict
+typing on the diff.
 
 ## Installation
 
-Le cœur (middleware, décorateur, moteur de diff, Admin) ne dépend que de
-Django et Pydantic. Les intégrations DRF, `django-signals-all` et Celery
-sont des extras à activer séparément, à combiner selon les besoins :
+The core (middleware, decorator, diff engine, Admin) only depends on
+Django and Pydantic. The DRF, `django-signals-all`, and Celery
+integrations are separate extras to enable, combined as needed:
 
 ```bash
-# Cœur seul
+# Core only
 uv add django-forge-log
 
-# Avec l'intégration DRF (forge_log.drf.AuditViewSetMixin)
+# With the DRF integration (forge_log.drf.AuditViewSetMixin)
 uv add "django-forge-log[drf]"
 
-# Avec l'intégration bulk django-signals-all (bulk_create/bulk_update/.update())
+# With the django-signals-all bulk integration (bulk_create/bulk_update/.update())
 uv add "django-forge-log[signals]"
 
-# Avec le backend d'écriture Celery (WRITE_BACKEND="celery")
+# With the Celery write backend (WRITE_BACKEND="celery")
 uv add "django-forge-log[celery]"
 
-# Plusieurs extras à la fois
+# Several extras at once
 uv add "django-forge-log[drf,signals,celery]"
 ```
 
-Avec `pip`, mêmes combinaisons :
+With `pip`, same combinations:
 
 ```bash
 pip install django-forge-log
 pip install "django-forge-log[drf,signals,celery]"
 ```
 
-Une release candidate n'étant pas une version finale, PyPI ne l'installe
-pas par défaut avec `pip install django-forge-log` — utilisez `--pre` ou
-fixez la version exacte tant que `1.0.0` n'est pas taggé :
+Since a release candidate is not a final version, PyPI does not install
+it by default with `pip install django-forge-log` — use `--pre` or pin
+the exact version until `1.0.0` is tagged:
 
 ```bash
 uv add "django-forge-log==1.0.0rc3"
@@ -81,9 +84,9 @@ MIDDLEWARE = [
 python manage.py migrate forge_log
 ```
 
-## Démarrage rapide
+## Quick start
 
-### Vue générique (FBV/CBV)
+### Generic view (FBV/CBV)
 
 ```python
 from forge_log.decorators import track_action
@@ -98,14 +101,14 @@ def update_article(request, pk):
     return HttpResponse(...)
 ```
 
-Sans configuration, l'instance suivie est retrouvée via le PK présent dans
-les kwargs de la vue (`pk`, ou le nom du champ clé primaire du modèle) — le
-cas courant `/resource/<pk>/`. Pour une création (pas de PK dans l'URL avant
-l'exécution de la vue), fournissez `get_instance` explicitement, ou préférez
-le mixin DRF ci-dessous.
+Without configuration, the tracked instance is looked up via the PK
+present in the view kwargs (`pk`, or the model's primary key field name)
+— the common `/resource/<pk>/` case. For a creation (no PK in the URL
+before the view runs), provide `get_instance` explicitly, or prefer the
+DRF mixin below.
 
-Les vues `async def` sont détectées automatiquement (`get_instance`, le
-calcul du diff et l'écriture basculent alors sur `sync_to_async`) :
+`async def` views are detected automatically (`get_instance`, the diff
+computation, and the write then switch to `sync_to_async`):
 
 ```python
 @track_action(Article)
@@ -116,13 +119,13 @@ async def update_article(request, pk):
     return JsonResponse(...)
 ```
 
-Avec `WRITE_BACKEND="asyncio"`, ce chemin s'exécute dans le thread de
-l'executor plutôt que sur l'event loop : l'écriture retombe alors sur le
-mode synchrone d'`AsyncTaskWriter` plutôt que sur `asyncio.create_task()` —
-toujours correct, mais sans le gain de perf attendu. Préférez `thread` ou
-`celery` pour des vues suivies async à fort trafic.
+With `WRITE_BACKEND="asyncio"`, this path runs on the executor thread
+rather than on the event loop: the write then falls back to
+`AsyncTaskWriter`'s synchronous mode rather than `asyncio.create_task()`
+— still correct, but without the expected performance gain. Prefer
+`thread` or `celery` for high-traffic tracked async views.
 
-### ViewSet DRF
+### DRF ViewSet
 
 ```python
 from rest_framework.viewsets import ModelViewSet
@@ -134,9 +137,9 @@ class ArticleViewSet(AuditViewSetMixin, ModelViewSet):
     serializer_class = ArticleSerializer
 ```
 
-Capture nativement `create`/`update`/`partial_update`/`destroy`, y compris
-les créations (contrairement à `track_action`, qui a besoin d'un PK dans
-l'URL). Nécessite l'extra `django-forge-log[drf]`.
+Natively captures `create`/`update`/`partial_update`/`destroy`,
+including creations (unlike `track_action`, which needs a PK in the
+URL). Requires the `django-forge-log[drf]` extra.
 
 ### Admin
 
@@ -150,17 +153,16 @@ class ArticleAdmin(AuditModelAdminMixin, admin.ModelAdmin):
     pass
 ```
 
-La table `ActionLog` elle-même est consultable (lecture seule) dans
-l'Admin via `forge_log.admin.ActionLogAdmin`.
+The `ActionLog` table itself is browsable (read-only) in the Admin via
+`forge_log.admin.ActionLogAdmin`.
 
-### Opérations en masse (`bulk_create`, `bulk_update`, `.update()`)
+### Bulk operations (`bulk_create`, `bulk_update`, `.update()`)
 
-Ces opérations contournent `Model.save()` et aucune des trois intégrations
-ci-dessus ne peut les voir depuis la vue. En branchant
-[django-signals-all](https://pypi.org/project/django-signals-all/) (extra
-`django-forge-log[signals]`), les mutations bulk émises via son
-`BulkSignalManager` sont journalisées automatiquement, sans code
-supplémentaire :
+These operations bypass `Model.save()` and none of the three
+integrations above can see them from the view. By wiring up
+[django-signals-all](https://pypi.org/project/django-signals-all/)
+(`django-forge-log[signals]` extra), bulk mutations emitted through its
+`BulkSignalManager` are logged automatically, with no extra code:
 
 ```python
 # models.py
@@ -178,19 +180,21 @@ class Article(models.Model):
 INSTALLED_APPS = [..., "django_signals_all", "forge_log"]
 ```
 
-`.filter(...).update(...)` ne charge pas les instances modifiées : une seule
-entrée agrégée est journalisée (`action="BULK_UPDATE"`, `object_id=None`),
-avec la liste des PK impactés dans `metadata`. `bulk_create()` et
-`Manager.bulk_update()` journalisent en revanche une entrée par instance.
+`.filter(...).update(...)` does not load the modified instances: a
+single aggregated entry is logged (`action="BULK_UPDATE"`,
+`object_id=None`), with the list of impacted PKs in `metadata`.
+`bulk_create()` and `Manager.bulk_update()`, on the other hand, log one
+entry per instance.
 
-## Historique d'un objet
+## Object history
 
 ```python
-ActionLog.objects.for_object(article)          # QuerySet, du plus récent au plus ancien
+ActionLog.objects.for_object(article)          # QuerySet, most recent first
 ActionLog.objects.for_object(article).filter(action="UPDATE")
 ```
 
-Ou directement depuis l'instance, en ajoutant le mixin au modèle suivi :
+Or directly from the instance, by adding the mixin to the tracked
+model:
 
 ```python
 from forge_log.relations import ForgeLogRelationMixin
@@ -200,27 +204,28 @@ class Article(ForgeLogRelationMixin, models.Model):
     ...
 
 
-article.forge_log_entries.all()  # équivalent à ActionLog.objects.for_object(article)
+article.forge_log_entries.all()  # equivalent to ActionLog.objects.for_object(article)
 ```
 
-`ForgeLogRelationMixin` est une classe abstraite (aucun champ concret, donc
-aucune migration requise), volontairement **pas** un `GenericRelation` :
-`GenericRelation` impose `on_delete=CASCADE` de façon non configurable côté
-Django, ce qui supprimerait tout l'historique d'audit d'un objet au moment
-même où il est supprimé — l'inverse de ce qu'un audit trail doit garantir.
+`ForgeLogRelationMixin` is an abstract class (no concrete field, so no
+migration required), deliberately **not** a `GenericRelation`:
+`GenericRelation` forces `on_delete=CASCADE` in a way that cannot be
+configured on the Django side, which would delete an object's entire
+audit history at the exact moment it is deleted — the opposite of what
+an audit trail must guarantee.
 
-## Écriture asynchrone (`WRITE_BACKEND`)
+## Asynchronous writes (`WRITE_BACKEND`)
 
-Écrire dans `ActionLog` a un coût. Cinq backends, sélectionnables par
-projet ou pour un test :
+Writing to `ActionLog` has a cost. Five backends, selectable per
+project or per test:
 
-| Backend | Comportement | Durabilité | Coût sur la requête |
+| Backend | Behavior | Durability | Cost on the request |
 |---|---|---|---|
-| `sync` | Écrit immédiatement | Maximale, mais journalise même une transaction annulée | Élevé |
-| `on_commit` | `transaction.on_commit()` | Jamais loggé si rollback | Élevé (toujours avant la réponse) |
-| `thread` (**défaut**) | File en mémoire + thread démon, `bulk_create` par lots | Fenêtre de perte (~200 ms) si le process est tué | Quasi nul (`queue.put_nowait`) |
-| `asyncio` | `asyncio.create_task()` (vues `async def`) | Idem `thread` ; nécessite un event loop actif | Quasi nul |
-| `celery` | Dispatch total via une tâche Celery | Robuste (persiste dans le broker) | Quasi nul |
+| `sync` | Writes immediately | Maximal, but logs even a rolled-back transaction | High |
+| `on_commit` | `transaction.on_commit()` | Never logged on rollback | High (always before the response) |
+| `thread` (**default**) | In-memory queue + daemon thread, `bulk_create` in batches | Loss window (~200 ms) if the process is killed | Near zero (`queue.put_nowait`) |
+| `asyncio` | `asyncio.create_task()` (`async def` views) | Same as `thread`; requires an active event loop | Near zero |
+| `celery` | Full dispatch via a Celery task | Robust (persisted in the broker) | Near zero |
 
 ```python
 FORGE_LOG = {
@@ -228,25 +233,25 @@ FORGE_LOG = {
 }
 ```
 
-`celery` nécessite l'extra `django-forge-log[celery]` et un broker déjà
-configuré côté projet.
+`celery` requires the `django-forge-log[celery]` extra and a broker
+already configured on the project side.
 
-## Sécurité et PII
+## Security and PII
 
-Le diff peut exposer des données sensibles s'il n'est pas configuré :
+The diff can expose sensitive data if left unconfigured:
 
 ```python
 FORGE_LOG = {
-    # Champs jamais journalisés (avant *et* après), par motif regex.
+    # Fields never logged (before *and* after), by regex pattern.
     "EXCLUDED_FIELDS": [r".*secret.*", r".*token.*", r".*_key$", r"credit_card", r"ssn"],
-    # Champs journalisés comme "modifiés" sans exposer les valeurs :
-    # {"password": {"masked": true}} plutôt que {"before": ..., "after": ...}.
+    # Fields logged as "changed" without exposing the values:
+    # {"password": {"masked": true}} rather than {"before": ..., "after": ...}.
     "MASKED_FIELDS": ["password"],
 }
 ```
 
-Ces réglages peuvent aussi être fixés par modèle, ce qui prime sur la config
-globale :
+These settings can also be set per model, which takes precedence over
+the global config:
 
 ```python
 class Article(models.Model):
@@ -256,21 +261,21 @@ class Article(models.Model):
         masked_fields = []
 ```
 
-Les `FileField`/`ImageField` ne journalisent jamais de contenu binaire,
-seulement le chemin (`.name`).
+`FileField`/`ImageField` never log binary content, only the path
+(`.name`).
 
-## Rétention
+## Retention
 
 ```bash
-python manage.py forgelog_purge --days 90         # supprime les entrées de plus de 90 jours
+python manage.py forgelog_purge --days 90         # deletes entries older than 90 days
 python manage.py forgelog_purge --days 90 --dry-run
 ```
 
-Ou via `FORGE_LOG["RETENTION_DAYS"]` pour ne pas avoir à passer `--days` à
-chaque appel (à brancher sur un cron applicatif — `forgelog_purge` ne
-s'exécute jamais tout seul).
+Or via `FORGE_LOG["RETENTION_DAYS"]` to avoid passing `--days` on every
+call (to wire up to an application cron — `forgelog_purge` never runs
+on its own).
 
-## Configuration complète
+## Full configuration
 
 ```python
 FORGE_LOG = {
@@ -279,29 +284,31 @@ FORGE_LOG = {
     "EXCLUDED_FIELDS": [r".*secret.*", r".*token.*", r".*_key$", r"credit_card", r"ssn"],
     "MASKED_FIELDS": ["password"],
     "RETENTION_DAYS": None,
-    "THREAD_FLUSH_INTERVAL": 0.2,     # secondes, backend "thread"
-    "THREAD_MAX_BATCH_SIZE": 50,      # backend "thread"
-    "THREAD_MAX_QUEUE_SIZE": 10_000,  # backend "thread"
+    "THREAD_FLUSH_INTERVAL": 0.2,     # seconds, "thread" backend
+    "THREAD_MAX_BATCH_SIZE": 50,      # "thread" backend
+    "THREAD_MAX_QUEUE_SIZE": 10_000,  # "thread" backend
 }
 ```
 
-## Limitations connues
+## Known limitations
 
-- `object_id` est un `CharField` (pas une FK typée) pour supporter les PK
-  non entières (UUID) sans une table par modèle — même compromis que
-  `django-reversion`/`django-guardian`. Un index composite
-  `(content_type, object_id)` compense l'absence de contrainte FK native.
-- `track_action` sans `get_instance` ne peut pas capturer une création (pas
-  de PK dans l'URL avant l'exécution de la vue) : utilisez
-  `forge_log.drf.AuditViewSetMixin` pour un ViewSet DRF, ou fournissez
-  `get_instance` explicitement.
-- Backend `thread` : les entrées en file d'attente sont perdues si le
-  process est tué avant le prochain flush (~`THREAD_FLUSH_INTERVAL`). Pour
-  une garantie stricte de durabilité, utilisez `on_commit` ou `celery`.
-- Le diff ne compare que les champs concrets du modèle (`_meta.concrete_fields`)
-  ou la liste explicite passée à `fields=` — pas les relations M2M implicites.
+- `object_id` is a `CharField` (not a typed FK) to support non-integer
+  PKs (UUID) without a table per model — the same trade-off as
+  `django-reversion`/`django-guardian`. A composite index
+  `(content_type, object_id)` compensates for the lack of a native FK
+  constraint.
+- `track_action` without `get_instance` cannot capture a creation (no
+  PK in the URL before the view runs): use
+  `forge_log.drf.AuditViewSetMixin` for a DRF ViewSet, or provide
+  `get_instance` explicitly.
+- `thread` backend: queued entries are lost if the process is killed
+  before the next flush (~`THREAD_FLUSH_INTERVAL`). For a strict
+  durability guarantee, use `on_commit` or `celery`.
+- The diff only compares the model's concrete fields
+  (`_meta.concrete_fields`) or the explicit list passed to `fields=` —
+  not implicit M2M relations.
 
-## Développement
+## Development
 
 ```bash
 uv sync --group dev
@@ -310,19 +317,19 @@ uv run ruff check src tests
 uv run ruff format --check src tests
 uv run mypy
 
-# SQLite (par défaut, pas de dépendance externe)
+# SQLite (default, no external dependency)
 uv run pytest --cov=forge_log --cov-report=term-missing
 
-# PostgreSQL et MySQL (nécessite Docker)
+# PostgreSQL and MySQL (requires Docker)
 docker compose up -d
 FORGE_LOG_TEST_DB=postgres uv run pytest
 FORGE_LOG_TEST_DB=mysql uv run pytest
 ```
 
-Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour contribuer,
-[CHANGELOG.md](CHANGELOG.md) pour l'historique des versions, et
-[RELEASING.md](RELEASING.md) pour le processus de publication.
+See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute,
+[CHANGELOG.md](CHANGELOG.md) for the release history, and
+[RELEASING.md](RELEASING.md) for the publishing process.
 
-## Licence
+## License
 
 [MIT](LICENSE)

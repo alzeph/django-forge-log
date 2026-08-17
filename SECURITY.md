@@ -1,23 +1,25 @@
-# Politique de sécurité
+# Security policy
 
-## Signaler une vulnérabilité
+*English | [Français](SECURITY.fr.md)*
 
-Merci de ne pas ouvrir d'issue publique pour une faille de sécurité.
-Contactez plutôt directement le mainteneur à
-[hervecedricyouan@gmail.com](mailto:hervecedricyouan@gmail.com) avec :
+## Reporting a vulnerability
 
-- une description du problème et de son impact ;
-- les étapes de reproduction ;
-- la version de `django-forge-log` concernée.
+Please do not open a public issue for a security flaw. Instead,
+contact the maintainer directly at
+[hervecedricyouan@gmail.com](mailto:hervecedricyouan@gmail.com) with:
 
-Une réponse est visée sous 5 jours ouvrés.
+- a description of the issue and its impact;
+- reproduction steps;
+- the affected `django-forge-log` version.
 
-## Points d'attention spécifiques à un audit trail
+A response is targeted within 5 business days.
 
-`django-forge-log` journalise potentiellement des données sensibles (valeurs
-avant/après des champs modifiés). Avant de signaler une fuite de PII comme
-un bug applicatif, vérifiez d'abord `FORGE_LOG["EXCLUDED_FIELDS"]` et
-`FORGE_LOG["MASKED_FIELDS"]` — voir le README, section Sécurité et PII. Un
-défaut de configuration côté projet utilisateur n'est pas une vulnérabilité
-de la librairie, mais toute lacune dans les valeurs par défaut fournies
-(champs sensibles courants non couverts) en est une et doit être signalée.
+## Points of attention specific to an audit trail
+
+`django-forge-log` potentially logs sensitive data (before/after
+values of changed fields). Before reporting a PII leak as an
+application bug, first check `FORGE_LOG["EXCLUDED_FIELDS"]` and
+`FORGE_LOG["MASKED_FIELDS"]` — see the README, Security and PII
+section. A misconfiguration on the user project's side is not a
+vulnerability in the library, but any gap in the provided defaults
+(common sensitive fields not covered) is one and should be reported.
