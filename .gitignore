@@ -16,3 +16,8 @@ htmlcov/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# Notes personnelles
+linkedin.txt
+linkedin_technique.txt
+linkedin_architecture.txt
